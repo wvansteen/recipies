@@ -1,0 +1,44 @@
+name: recipes-servant
+
+ghc-options: -Wall
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - test
+    dependencies:
+      - esqueleto
+      - hspec
+      - http-client
+      - http-types
+      - persistent
+      - recipes-servant
+      - servant-client
+      - warp
+
+library:
+  source-dirs:
+    - src
+
+executables:
+  recipes-servant:
+    main: exe/Main.hs
+    dependencies:
+      - recipes-servant
+
+dependencies:
+  - aeson
+  - base
+  - esqueleto
+  - monad-logger
+  - persistent
+  - persistent-sqlite
+  - persistent-template
+  - servant
+  - servant-server
+  - text
+  - time
+  - transformers
+  - wai
+  - warp

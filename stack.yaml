@@ -1,0 +1,7 @@
+flags: {}
+packages:
+- '.'
+extra-deps:
+- esqueleto-2.5.1
+- persistent-2.6.1
+resolver: lts-7.20

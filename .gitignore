@@ -1,0 +1,3 @@
+.stack-work/
+recipes-servant.cabal
+sqlite.db
