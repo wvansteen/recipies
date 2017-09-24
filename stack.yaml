@@ -1,7 +1,18 @@
-flags: {}
+resolver: lts-9.5
+
+ghc-options:
+  "*": -Wall
+  "*": -Wmissing-import-lists
+  "*": -Wincomplete-patterns
+  "*": -Wincomplete-record-updates
+  "*": -Widentities
+  "*": -Wredundant-constraints
+
 packages:
-- '.'
-extra-deps:
-- esqueleto-2.5.1
-- persistent-2.6.1
-resolver: lts-7.20
+- .
+
+extra-deps: []
+
+flags: {}
+
+extra-package-dbs: []

@@ -12,10 +12,10 @@
 
 module Models where
 
-import Data.Aeson
-import Data.Text
-import Database.Persist.TH
-import GHC.Generics
+import Data.Aeson (FromJSON, ToJSON, object, parseJSON, toJSON, withObject, (.:), (.=))
+import Data.Text (Text)
+import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
+import GHC.Generics (Generic)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   Recipe
@@ -31,5 +31,6 @@ instance FromJSON Recipe where
 
 instance ToJSON Recipe where
   toJSON (Recipe name description) = object [
-    "name" .= name
-    ,"description" .= description]
+        "name" .= name
+      , "description" .= description
+    ]

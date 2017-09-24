@@ -1,26 +1,40 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module TestHelper where
 
-import Control.Exception (throwIO)
-import Control.Monad.Trans.Except
-import Network.HTTP.Client (Manager, newManager, defaultManagerSettings)
-import Network.HTTP.Types
-import Network.Wai (Application)
-import Network.Wai.Handler.Warp
-import Servant.Client
-import Test.Hspec
+import Control.Monad.Logger (runNoLoggingT)
+import Database.Persist.Sql (runMigration, runSqlPool)
+import Database.Persist.Sqlite (ConnectionPool, createSqlitePool)
+import Network.HTTP.Client (newManager, defaultManagerSettings)
+import Network.Wai.Handler.Warp (Port, testWithApplication)
+import Servant.Client (ClientM, ServantError, BaseUrl (BaseUrl), ClientEnv (ClientEnv), runClientM)
+import Servant.Common.BaseUrl (Scheme (Http))
+import Test.Mockery.Directory (inTempDirectory)
 
-withClient :: IO Application -> SpecWith Host -> SpecWith ()
-withClient app innerSpec =
-  beforeAll (newManager defaultManagerSettings) $
-    flip aroundWith innerSpec $ \ action manager ->
-      testWithApplication app $ \ port ->
-        action (manager, BaseUrl Http "localhost" port "")
+import App (app)
+import Models (migrateAll)
 
-type Host = (Manager, BaseUrl)
+testConnectionPool :: IO ConnectionPool
+testConnectionPool = inTempDirectory $ runNoLoggingT (createSqlitePool "sqlite.db" 5)
 
-try :: Host -> (Manager -> BaseUrl -> ClientM a) -> IO a
-try (manager, baseUrl) action = either throwIO return =<<
-  runExceptT (action manager baseUrl)
+withApp ::
+  (Port -> IO a)
+  -> IO a
+withApp action =
+  let
+    migratedApplication = do
+      pool <- testConnectionPool
+      runSqlPool (runMigration migrateAll) pool
+      return $ app pool
+  in
+    testWithApplication migratedApplication action
 
-shouldThrowErrorStatus :: IO a -> Status -> Expectation
-shouldThrowErrorStatus action status = action `shouldThrow` ((==) status . responseStatus)
+executeRequest ::
+  Port
+  -> ClientM a
+  -> IO (Either ServantError a)
+executeRequest port request = do
+  manager <- newManager defaultManagerSettings
+  let baseUrl = BaseUrl Http "localhost" port ""
+  let clientEnv = ClientEnv manager baseUrl
+  runClientM request clientEnv

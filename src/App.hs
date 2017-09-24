@@ -1,47 +1,34 @@
 {-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module App where
 
-import Control.Monad.IO.Class
-import Control.Monad.Logger (runStderrLoggingT)
-import Data.Text
-import Database.Persist
-import Database.Persist.Sql
-import Database.Persist.Sqlite
-import Servant
+import Control.Monad.IO.Class (liftIO)
+import Database.Persist (entityVal, get, insert, selectList)
+import Database.Persist.Sql (ConnectionPool, runSqlPersistMPool, toSqlKey)
+import Servant ((:<|>) ((:<|>)))
+import Servant.Server (Application, Server, serve)
 
-import Api
-import Models
+import Api (api, RecipeApi)
 
 server :: ConnectionPool -> Server RecipeApi
-server pool = recipeAddH :<|> recipesGetH :<|> recipeGetH
+server pool = recipeAdd :<|> lookupRecipes :<|> lookupRecipe
   where
-    recipeAddH newRecipe = liftIO $ recipeAdd newRecipe
-    recipeGetH recipeId = liftIO $ recipeGet recipeId
-    recipesGetH = liftIO recipesGet
+    recipeAdd newRecipe = let
+      statement = insert newRecipe
+      in liftIO $ runSqlPersistMPool statement pool
 
-    recipeAdd :: Recipe -> IO (Key Recipe)
-    recipeAdd newRecipe = flip runSqlPersistMPool pool $ insert newRecipe
+    lookupRecipe recipeId = let
+      statement = get (toSqlKey recipeId)
+      in liftIO $ runSqlPersistMPool statement pool
 
-    recipeGet :: Text -> IO (Maybe Recipe)
-    recipeGet name = flip runSqlPersistMPool pool $ do
-      mRecipe <- selectFirst [RecipeName ==. name] []
-      return $ entityVal <$> mRecipe
-
-    recipesGet :: IO [Recipe]
-    recipesGet = flip runSqlPersistMPool pool $ do
-      recipes <- selectList [] []
-      return $ entityVal <$> recipes
+    lookupRecipes = let
+      query = do
+        recipes <- selectList [] []
+        return $ entityVal <$> recipes
+      in liftIO $ runSqlPersistMPool query pool
 
 app :: ConnectionPool -> Application
-app pool = serve api $ server pool
-
-mkApp :: FilePath -> IO Application
-mkApp sqliteFile = do
-  pool <- runStderrLoggingT $ createSqlitePool (pack sqliteFile) 5
-  runSqlPool (runMigration migrateAll) pool
-  return $ app pool
+app connectionPool = serve api $ server connectionPool

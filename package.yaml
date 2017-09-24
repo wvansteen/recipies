@@ -8,10 +8,13 @@ tests:
     source-dirs:
       - test
     dependencies:
+      - bytestring
       - esqueleto
       - hspec
+      - HUnit
       - http-client
       - http-types
+      - mockery
       - persistent
       - recipes-servant
       - servant-client
