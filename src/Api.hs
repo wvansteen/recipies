@@ -9,7 +9,7 @@ import Models (Key, Recipe)
 type RecipeApi =
     "recipe" :> ReqBody '[JSON] Recipe :> Post '[JSON] (Key Recipe)
   :<|> "recipe" :> Get '[JSON] [Recipe]
-  :<|> "recipe" :> Capture "recipeKey" Int64 :> Get '[JSON] (Maybe Recipe)
+  :<|> "recipe" :> Capture "recipeKey" Int64 :> Get '[JSON] Recipe
 
 api :: Proxy RecipeApi
 api = Proxy

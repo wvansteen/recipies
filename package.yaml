@@ -14,6 +14,7 @@ tests:
       - HUnit
       - http-client
       - http-types
+      - microlens
       - mockery
       - persistent
       - recipes-servant

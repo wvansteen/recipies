@@ -8,7 +8,7 @@ module App where
 import Control.Monad.IO.Class (liftIO)
 import Database.Persist (entityVal, get, insert, selectList)
 import Database.Persist.Sql (ConnectionPool, runSqlPersistMPool, toSqlKey)
-import Servant ((:<|>) ((:<|>)))
+import Servant ((:<|>) ((:<|>)), err404, throwError)
 import Servant.Server (Application, Server, serve)
 
 import Api (api, RecipeApi)
@@ -22,7 +22,13 @@ server pool = recipeAdd :<|> lookupRecipes :<|> lookupRecipe
 
     lookupRecipe recipeId = let
       statement = get (toSqlKey recipeId)
-      in liftIO $ runSqlPersistMPool statement pool
+      recipeORError = do
+        maybeRecipe <- liftIO $ runSqlPersistMPool statement pool
+        case maybeRecipe of
+          Just recipe -> return recipe
+          _ -> throwError err404
+
+      in recipeORError
 
     lookupRecipes = let
       query = do
